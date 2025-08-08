@@ -65,7 +65,7 @@ You must have a Google Gemini API key to use this application.
 
 1.  Clone the repo
     ```sh
-    git clone https://github.com/KuekHaoYang/KResearch.git
+    git clone https://github.com/XJTLUmedia/KResearch.git
     cd KResearch
     ```
 2.  Install NPM packages
