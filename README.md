@@ -10,18 +10,22 @@
 
 ## Table of Contents
 
-- [About The Project](#about-the-project)
-  - [Built With](#built-with)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-- [Usage](#usage)
-- [Docker](#docker)
-- [Configuration](#configuration)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-- [Acknowledgements](#acknowledgements)
+- [KResearch](#kresearch)
+  - [Table of Contents](#table-of-contents)
+  - [About The Project](#about-the-project)
+    - [Built With](#built-with)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+  - [Usage](#usage)
+  - [Docker](#docker)
+  - [Configuration](#configuration)
+    - [Option 1: In-app Settings (Recommended for Docker)](#option-1-in-app-settings-recommended-for-docker)
+    - [Option 2: Environment File (For Local Development)](#option-2-environment-file-for-local-development)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Contact](#contact)
+  - [Acknowledgements](#acknowledgements)
 
 ## About The Project
 
@@ -42,7 +46,8 @@ This project's key features include:
 *   [React](https://react.dev/)
 *   [TypeScript](https://www.typescriptlang.org/)
 *   [Tailwind CSS](https://tailwindcss.com/)
-*   [Google Gemini API (`@google/genai`)](https://github.com/google/generative-ai-js)
+*   [Google Gemini API](https://ai.google.dev/)
+*   [Openrouter API (OpenAI SDK)](https://openrouter.ai/api/v1/models/)
 *   [Mermaid.js](https://mermaid.js.org/)
 
 ## Getting Started
@@ -117,8 +122,31 @@ For local development (`npm run dev`) or `docker-compose`, you can create a `.en
 2.  Add your API key to the file:
     ```dotenv
     # .env
+    # For Gemini API
     API_KEY="YOUR_GEMINI_API_KEY"
+
+    # Or for Open Router API
+    API_KEY="YOUR_OPENROUTER_API_KEY"
     ```
+
+### Switching Between AI Providers
+The application supports both Google Gemini and OpenRouter APIs:
+
+- **Google Gemini**:
+  - API Key format: `AIza...`
+  - Models: `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+  - Features: Google Search integration, advanced reasoning
+
+- **OpenRouter**:
+  - API Key format: `sk-...`
+  - Models: `All models`,
+  - Features: Cost-effective, high performance
+
+**How to Switch:**
+1. Go to Settings → API Provider
+2. Click "Google Gemini" or "OpenRouter" quick setup buttons
+3. Enter your API key for the chosen provider
+4. The application automatically uses appropriate models for your selected provider
 
 ## Contributing
 
@@ -138,5 +166,5 @@ For issues, questions, or feature requests, please use the [GitHub Issues](https
 
 ## Acknowledgements
 
-*   Powered by the Google Gemini API.
+*   Powered by Google Gemini API and OpenRouter API.
 *   UI inspired by modern glassmorphism design trends.

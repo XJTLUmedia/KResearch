@@ -5,9 +5,10 @@ export class AllKeysFailedError extends Error {
     }
 }
 
-const API_KEYS_STORAGE_KEY = 'gemini_api_keys';
-const API_BASE_URL_STORAGE_KEY = 'gemini_api_base_url';
-const DEFAULT_API_BASE_URL = 'https://generativelanguage.googleapis.com';
+const API_KEYS_STORAGE_KEY = 'ai_api_keys'; // Supports both Gemini and OpenRouter
+const API_BASE_URL_STORAGE_KEY = 'ai_api_base_url';
+const GEMINI_DEFAULT_API_BASE_URL = 'https://generativelanguage.googleapis.com';
+const OPENROUTER_DEFAULT_API_BASE_URL = 'https://openrouter.ai/api/v1';
 
 
 class ApiKeyService {
@@ -34,10 +35,10 @@ class ApiKeyService {
 
         try {
             const storedBaseUrl = localStorage.getItem(API_BASE_URL_STORAGE_KEY);
-            this.apiBaseUrl = storedBaseUrl || DEFAULT_API_BASE_URL;
+            this.apiBaseUrl = storedBaseUrl || GEMINI_DEFAULT_API_BASE_URL; // Default to Gemini for backward compatibility
         } catch (e) {
             console.warn("Could not access localStorage. API base URL will not be persisted.");
-            this.apiBaseUrl = DEFAULT_API_BASE_URL;
+            this.apiBaseUrl = GEMINI_DEFAULT_API_BASE_URL;
         }
     }
     
@@ -94,14 +95,42 @@ class ApiKeyService {
     }
 
     public setApiBaseUrl(url: string): void {
-        const newUrl = url.trim() || DEFAULT_API_BASE_URL;
+        const oldUrl = this.apiBaseUrl;
+        const newUrl = url.trim() || GEMINI_DEFAULT_API_BASE_URL;
         this.apiBaseUrl = newUrl;
         try {
             if (this.isEnvKey()) return; // Do not save if env key is present
             localStorage.setItem(API_BASE_URL_STORAGE_KEY, newUrl);
+
+            // If the API provider changed, clear incompatible model overrides
+            const oldIsOpenRouter = oldUrl.includes('openrouter.ai');
+            const newIsOpenRouter = newUrl.includes('openrouter.ai');
+            if (oldIsOpenRouter !== newIsOpenRouter) {
+                // Import settingsService dynamically to avoid circular dependency
+                import('./settingsService').then(({ settingsService }) => {
+                    settingsService.clearIncompatibleModelOverrides();
+                });
+            }
         } catch (e) {
             console.warn("Could not access localStorage. API base URL will not be persisted.");
         }
+    }
+
+    // Helper methods for API provider detection
+    public isUsingOpenRouter(): boolean {
+        return this.apiBaseUrl.includes('openrouter.ai');
+    }
+
+    public isUsingGemini(): boolean {
+        return this.apiBaseUrl.includes('googleapis.com') || this.apiBaseUrl.includes('generativelanguage');
+    }
+
+    public getOpenRouterBaseUrl(): string {
+        return OPENROUTER_DEFAULT_API_BASE_URL;
+    }
+
+    public getGeminiBaseUrl(): string {
+        return GEMINI_DEFAULT_API_BASE_URL;
     }
 
     public reset(): void {

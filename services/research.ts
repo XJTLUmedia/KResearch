@@ -67,11 +67,14 @@ export const runIterativeDeepResearch = async (
   });
 
   const { maxCycles } = settingsService.getSettings().researchParams;
-  
+
   const checkSignal = () => {
     if (signal.aborted) throw new DOMException('Research aborted by user.', 'AbortError');
   }
-  
+
+  // Track consecutive search cycles that produced no sources
+  let consecutiveNoSourceCycles = 0;
+
   // Recovery logic for a failed search/read step
   const lastUpdate = history.length > 0 ? history[history.length - 1] : null;
   if (lastUpdate && lastUpdate.type === 'search') {
@@ -125,16 +128,55 @@ export const runIterativeDeepResearch = async (
       const searchUpdate = { id: idCounter.current++, type: 'search' as const, content: searchQueries, source: searchQueries.map(q => `https://www.google.com/search?q=${encodeURIComponent(q)}`) };
       history.push(searchUpdate);
       onUpdate(searchUpdate);
-      
+
       const { readUpdateContent, newCitations } = await performSearchAndRead(searchQueries, mode, checkSignal);
       allCitations.push(...newCitations);
-      
-      const readUpdate = { 
-        id: idCounter.current++, 
+
+      // Determine if this cycle produced any sources
+      const producedSources = Array.isArray(readUpdateContent.source) && readUpdateContent.source.length > 0;
+      if (!producedSources) {
+        consecutiveNoSourceCycles += 1;
+      } else {
+        consecutiveNoSourceCycles = 0;
+      }
+
+      const readUpdate = {
+        id: idCounter.current++,
         ...readUpdateContent
       };
       history.push(readUpdate);
       onUpdate(readUpdate);
+
+      // If there are sources, surface a brief Alpha/Beta note so the UI shows them in the agent conversation
+      if (producedSources) {
+        const sampleSources = (Array.isArray(readUpdateContent.source) ? readUpdateContent.source : [])
+          .slice(0, 2)
+          .map(s => (typeof s === 'string' ? s : String(s)));
+        const alphaNote = {
+          id: idCounter.current++,
+          type: 'thought' as const,
+          persona: 'Alpha' as const,
+          content: sampleSources.length > 0
+            ? `We have new sources to deepen our research. Examples: ${sampleSources.join(', ')}`
+            : 'We have new sources to deepen our research.'
+        };
+        const betaNote = {
+          id: idCounter.current++,
+          type: 'thought' as const,
+          persona: 'Beta' as const,
+          content: 'Acknowledged. I will craft the next set of targeted queries based on these sources.'
+        };
+        history.push(alphaNote); onUpdate(alphaNote);
+        history.push(betaNote); onUpdate(betaNote);
+      }
+
+      // If 2 consecutive cycles yielded no sources, stop looping to avoid spinning
+      if (consecutiveNoSourceCycles >= 2) {
+        const loopBreak = { id: idCounter.current++, type: 'thought' as const, content: 'Two consecutive search cycles returned no sources. Concluding research to avoid looping.' };
+        history.push(loopBreak);
+        onUpdate(loopBreak);
+        break;
+      }
     } else if (!plan.should_finish) {
         const safetyBreakUpdate = { id: idCounter.current++, type: 'thought' as const, content: 'Planner did not provide a search action. Concluding research to synthesize report.' };
         history.push(safetyBreakUpdate);

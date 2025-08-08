@@ -17,7 +17,7 @@ Your response MUST be a single, valid JSON object and nothing else, like this: {
     };
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: getModel('roleAI', 'Balanced'),
         contents: prompt,
         config: {
             systemInstruction: systemPrompt,
@@ -27,7 +27,7 @@ Your response MUST be a single, valid JSON object and nothing else, like this: {
         }
     });
 
-    const parsed = parseJsonFromMarkdown(response.text);
+    const parsed = parseJsonFromMarkdown(response.text || '');
     if (!parsed || !parsed.name || !parsed.emoji) {
         throw new Error("AI failed to generate a valid name and emoji object.");
     }

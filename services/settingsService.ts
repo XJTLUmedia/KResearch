@@ -57,6 +57,53 @@ class SettingsService {
   public getSettings(): AppSettings {
     return this.settings;
   }
+
+  public clearIncompatibleModelOverrides(): void {
+    const isOpenRouter = apiKeyService.isUsingOpenRouter();
+    const currentOverrides = this.settings.modelOverrides;
+    let hasChanges = false;
+
+    // Clear any model overrides that don't match the current API provider
+    for (const role in currentOverrides) {
+      const override = currentOverrides[role];
+      if (override) {
+        const isOverrideOpenRouter = !override.includes('gemini'); // any non-Gemini is considered OpenRouter-side
+        const isOverrideGemini = override.includes('gemini');
+
+        if (isOpenRouter && isOverrideGemini) {
+          currentOverrides[role] = null;
+          hasChanges = true;
+          console.log(`Cleared incompatible Gemini model override for ${role}: ${override}`);
+        } else if (!isOpenRouter && isOverrideOpenRouter) {
+          currentOverrides[role] = null;
+          hasChanges = true;
+          console.log(`Cleared incompatible OpenRouter model override for ${role}: ${override}`);
+        }
+      }
+    }
+
+    if (hasChanges) {
+      this.save(this.settings);
+      console.log('Cleared incompatible model overrides based on current API provider');
+    }
+  }
+
+  public clearAllModelOverrides(): void {
+    const currentOverrides = this.settings.modelOverrides;
+    let hasChanges = false;
+
+    for (const role in currentOverrides) {
+      if (currentOverrides[role]) {
+        currentOverrides[role] = null;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      this.save(this.settings);
+      console.log('Cleared all model overrides, will use defaults based on current API provider');
+    }
+  }
   
   public async fetchAvailableModels(forceRefetch: boolean = false): Promise<string[]> {
     const apiKeys = apiKeyService.getApiKeys();
@@ -64,18 +111,31 @@ class SettingsService {
       this.availableModels = [];
       throw new Error("API Key not set.");
     }
-    
+
     if (this.availableModels.length > 0 && !forceRefetch) return this.availableModels;
 
     const allModelNames = new Set<string>();
     let lastError: any = null;
     const baseUrl = apiKeyService.getApiBaseUrl();
+    const isOpenRouter = apiKeyService.isUsingOpenRouter();
 
     for (const key of apiKeys) {
         try {
-            const response = await fetch(`${baseUrl}/v1beta/models?pageSize=50`, {
-                headers: { 'x-goog-api-key': key }
-            });
+            let response;
+            if (isOpenRouter) {
+                // OpenRouter uses OpenAI-compatible models endpoint
+                response = await fetch(`${baseUrl}/models`, {
+                    headers: {
+                        'Authorization': `Bearer ${key}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } else {
+                // Gemini API endpoint
+                response = await fetch(`${baseUrl}/v1beta/models?pageSize=50`, {
+                    headers: { 'x-goog-api-key': key }
+                });
+            }
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null);
@@ -83,11 +143,21 @@ class SettingsService {
                 throw new Error(`Failed with key ending in ...${key.slice(-4)}: ${errorMessage}`);
             }
 
-            const data = await response.json() as { models?: { name: string }[] };
-            const modelNames = (data.models || [])
-                .map((m: { name: string }) => m.name.replace(/^models\//, ''))
-                .filter((name: string) => name.includes('gemini'));
-            
+            const data = await response.json();
+            let modelNames: string[] = [];
+
+            if (isOpenRouter) {
+                // OpenRouter response format: { data: [{ id: "openrouter/model-id", object: "model", ... }] }
+                modelNames = (data.data || [])
+                    .map((m: { id: string }) => m.id)
+                    .filter((name: string) => !name.includes('gemini'));
+            } else {
+                // Gemini API response format: { models: [{ name: "models/gemini-pro", ... }] }
+                modelNames = (data.models || [])
+                    .map((m: { name: string }) => m.name.replace(/^models\//, ''))
+                    .filter((name: string) => name.includes('gemini'));
+            }
+
             modelNames.forEach(name => allModelNames.add(name));
             // We only need one successful key to get the models.
             lastError = null; 

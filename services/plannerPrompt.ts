@@ -24,6 +24,8 @@ interface PlannerPromptParams {
     minCycles: number;
     maxCycles: number;
     isFirstTurn: boolean;
+    webSignalsText?: string;
+
 }
 
 export const getPlannerPrompt = ({
@@ -38,7 +40,8 @@ export const getPlannerPrompt = ({
     conversationText,
     minCycles,
     maxCycles,
-    isFirstTurn
+    isFirstTurn,
+    webSignalsText
 }: PlannerPromptParams): string => {
 
 const roleContext = role ? `
@@ -64,6 +67,8 @@ ${roleContext}
 
 **Current Planning Conversation:**
 ${conversationText || "You are Agent Alpha, starting the conversation. Propose the initial strategy based on the 'Cognitive Ascent' protocol below."}
+
+${webSignalsText ? `**Latest Web Signals (Google + Other Engines):**\n${webSignalsText}` : ''}
 
 --- MANDATORY COGNITIVE PROTOCOL & RULES ---
 

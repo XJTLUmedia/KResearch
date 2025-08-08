@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Enhanced Web Search Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .query-processing {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        .search-term {
+            display: inline-block;
+            background: #e1f5fe;
+            padding: 2px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid #0288d1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI-Enhanced Web Search Test</h1>
+        <p>This page tests the new AI-powered query processing that breaks down complex queries into effective search terms.</p>
+        
+        <div class="test-section">
+            <h3>Complex Query Tests</h3>
+            <button onclick="testComplexQuery('please prepare a full report on how to invest in gold in august 8 2025')">Test Gold Investment Query</button>
+            <button onclick="testComplexQuery('write a comprehensive analysis of artificial intelligence trends in 2025')">Test AI Trends Query</button>
+            <button onclick="testComplexQuery('create a detailed study on climate change impacts on agriculture')">Test Climate Agriculture Query</button>
+            <button onclick="clearResults()">Clear Results</button>
+            <div id="complex-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Custom Query Test</h3>
+            <textarea id="custom-query" placeholder="Enter your complex query here..." style="width: 100%; height: 80px; padding: 8px; border-radius: 4px; border: 1px solid #ddd;"></textarea>
+            <br><br>
+            <button onclick="testCustomQuery()">Test Custom Query</button>
+            <div id="custom-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Query Processing Only</h3>
+            <p>Test just the AI query processing without running the full search:</p>
+            <input type="text" id="processing-query" placeholder="Enter query to process..." style="width: 70%; padding: 8px;">
+            <button onclick="testQueryProcessing()">Process Query</button>
+            <div id="processing-results"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the web search service
+        import { performWebSearch } from './services/webSearchService.ts';
+
+        window.testComplexQuery = async function(query) {
+            const resultsDiv = document.getElementById('complex-results');
+            resultsDiv.innerHTML = '<div class="loading">Processing complex query: ' + query + '...</div>';
+            
+            try {
+                const startTime = Date.now();
+                const { results, citations } = await performWebSearch(query);
+                const endTime = Date.now();
+                
+                let html = `<div class="result success">
+                    <strong>Search completed in ${endTime - startTime}ms</strong><br>
+                    <strong>Original Query:</strong> "${query}"<br>
+                    Found ${results.length} results and ${citations.length} citations
+                </div>`;
+                
+                // Show first few results
+                results.slice(0, 8).forEach(result => {
+                    html += `<div class="result">
+                        <strong>${result.source}:</strong> ${result.title}<br>
+                        <small><a href="${result.url}" target="_blank">${result.url}</a></small><br>
+                        ${result.snippet}
+                    </div>`;
+                });
+                
+                if (results.length > 8) {
+                    html += `<div class="result warning">... and ${results.length - 8} more results</div>`;
+                }
+                
+                if (citations.length > 0) {
+                    html += '<div class="result"><strong>Citations:</strong><br>';
+                    citations.slice(0, 5).forEach(citation => {
+                        html += `• <a href="${citation.url}" target="_blank">${citation.title}</a> (${citation.source})<br>`;
+                    });
+                    if (citations.length > 5) {
+                        html += `... and ${citations.length - 5} more citations`;
+                    }
+                    html += '</div>';
+                }
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result error">
+                    <strong>Error:</strong> ${error.message}<br>
+                    <pre>${error.stack}</pre>
+                </div>`;
+            }
+        };
+
+        window.testCustomQuery = function() {
+            const query = document.getElementById('custom-query').value.trim();
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('custom-results');
+            resultsDiv.innerHTML = '<div class="loading">Processing custom query...</div>';
+            
+            window.testComplexQuery(query).then(() => {
+                // Move results from complex-results to custom-results
+                const complexResults = document.getElementById('complex-results').innerHTML;
+                resultsDiv.innerHTML = complexResults;
+                document.getElementById('complex-results').innerHTML = '';
+            });
+        };
+
+        window.testQueryProcessing = async function() {
+            const query = document.getElementById('processing-query').value.trim();
+            if (!query) {
+                alert('Please enter a query to process');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('processing-results');
+            resultsDiv.innerHTML = '<div class="loading">Processing query with AI...</div>';
+            
+            try {
+                // We can't directly call processSearchQuery since it's not exported
+                // But we can see the processing in the console when we call performWebSearch
+                console.log('Testing query processing for:', query);
+                
+                // Call performWebSearch but focus on the processing part
+                const startTime = Date.now();
+                const { results } = await performWebSearch(query);
+                const endTime = Date.now();
+                
+                let html = `<div class="result query-processing">
+                    <strong>Query Processing Test Completed in ${endTime - startTime}ms</strong><br>
+                    <strong>Original Query:</strong> "${query}"<br>
+                    <strong>Check the browser console for detailed processing logs</strong><br>
+                    Found ${results.length} total results after processing
+                </div>`;
+                
+                // Show some sample results to demonstrate the processing worked
+                if (results.length > 0) {
+                    html += '<div class="result"><strong>Sample Results (showing processing worked):</strong><br>';
+                    results.slice(0, 3).forEach(result => {
+                        html += `• ${result.title} (${result.source})<br>`;
+                    });
+                    html += '</div>';
+                }
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result error">
+                    <strong>Processing Error:</strong> ${error.message}
+                </div>`;
+            }
+        };
+
+        window.clearResults = function() {
+            document.getElementById('complex-results').innerHTML = '';
+            document.getElementById('custom-results').innerHTML = '';
+            document.getElementById('processing-results').innerHTML = '';
+        };
+
+        // Test on page load
+        console.log('AI-Enhanced Web Search Test Page Loaded');
+        console.log('Available functions: testComplexQuery, testCustomQuery, testQueryProcessing, clearResults');
+        console.log('Open browser console to see detailed query processing logs');
+    </script>
+</body>
+</html>

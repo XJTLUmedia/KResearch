@@ -1,6 +1,7 @@
 
 import { ai } from './geminiClient';
 import { getModel } from './models';
+import { apiKeyService } from './apiKeyService';
 import { ResearchUpdate, Citation, FinalResearchData, ResearchMode, FileData, ReportVersion, Role } from '../types';
 
 const getRoleContext = (role: Role | null): string => {
@@ -105,7 +106,15 @@ const commonInstructions = `
 Respond ONLY with the raw markdown content of the final report, starting with the H1 title. Do not add any conversational text or explanation.
 `;
 
-    const finalReportPrompt = `${corePrompt}\n${instructions}\n${commonInstructions}`;
+    // If using OpenRouter, append an Appendix template with combined search sources (Google + other engines)
+    let appendixBlock = '';
+    if (apiKeyService.isUsingOpenRouter() && citations && citations.length > 0) {
+        const uniqueCitations = Array.from(new Map(citations.map(c => [c.url, c])).values());
+        const appendixList = uniqueCitations.map(c => `- ${c.title}  \n  ${c.url}`).join('\n');
+        appendixBlock = `\n\n**Appendix: Combined Search Sources**\n\nThe following sources were identified via multi-engine search (including Google and other engines) during the research process.\n\n${appendixList}`;
+    }
+
+    const finalReportPrompt = `${corePrompt}\n${instructions}\n${commonInstructions}${appendixBlock ? `\n\n${appendixBlock}` : ''}`;
 
     const parts: ({ text: string } | { inlineData: { mimeType: string; data: string; } })[] = [{ text: finalReportPrompt }];
     if (fileData) {

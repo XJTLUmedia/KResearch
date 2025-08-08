@@ -1,19 +1,21 @@
 {
-  "name": "kresearch",
+  "name": "ai-research-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Advanced AI-powered research platform supporting both Google Gemini and OpenRouter APIs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {
+    "dependencies": {
+    "openai": "^5.12.0",
     "react": "^19.1.0",
-    "@google/genai": "^1.11.0",
+    "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "react-dom": "^19.1.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.11.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
